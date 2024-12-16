@@ -54,11 +54,37 @@ const OMDB_API_KEY = "6fc5422e";
 export default function App() {
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const query = "interstellar";
 
   useEffect(function () {
-    fetch(`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=interstellar`)
-      .then((res) => res.json())
-      .then((data) => setMovies(data.Search));
+    async function fetchMovies() {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${query}`);
+
+        // Handle non-successful HTTP response
+        if (!res.ok) throw new Error("Something went wrong with fetching movies");
+
+        const data = await res.json();
+
+        // Handle OMDB API errors (e.g., invalid query)
+        if (data.Response === "False") throw new Error(data.Error);
+
+        setMovies(data.Search);
+      } catch (error) {
+        // Check for network errors (TypeError)
+        if (error instanceof TypeError) {
+          setError("Network error: Failed to fetch movies. Please check your connection.");
+        } else {
+          setError(error.message); // Custom errors
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchMovies();
   }, []);
 
   return (
@@ -70,7 +96,9 @@ export default function App() {
 
       <Main>
         <Box>
-          <MoviesList movies={movies} />
+          {isLoading && <Loader />}
+          {!isLoading && !error && <MoviesList movies={movies} />}
+          {error && <ErrorMessage message={error} />}
         </Box>
 
         <Box>
@@ -124,6 +152,18 @@ function NumResults({ movies }) {
 
 function Main({ children }) {
   return <main className="main">{children}</main>;
+}
+
+function Loader() {
+  return <p className="loader">Loading...</p>;
+}
+
+function ErrorMessage({ message }) {
+  return (
+    <p className="error">
+      <span>⛔</span> {message}
+    </p>
+  );
 }
 
 function Box({ children }) {
