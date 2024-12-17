@@ -56,41 +56,52 @@ export default function App() {
   const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const query = "interstellar";
+  const [query, setQuery] = useState("");
 
-  useEffect(function () {
-    async function fetchMovies() {
-      try {
-        setIsLoading(true);
-        const res = await fetch(`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${query}`);
+  useEffect(
+    function () {
+      async function fetchMovies() {
+        try {
+          setIsLoading(true);
+          setError("");
+          const res = await fetch(`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${query}`);
 
-        // Handle non-successful HTTP response
-        if (!res.ok) throw new Error("Something went wrong with fetching movies");
+          // Handle non-successful HTTP response
+          if (!res.ok) throw new Error("Something went wrong with fetching movies");
 
-        const data = await res.json();
+          const data = await res.json();
 
-        // Handle OMDB API errors (e.g., invalid query)
-        if (data.Response === "False") throw new Error(data.Error);
+          // Handle OMDB API errors (e.g., invalid query)
+          if (data.Response === "False") throw new Error(data.Error);
 
-        setMovies(data.Search);
-      } catch (error) {
-        // Check for network errors (TypeError)
-        if (error instanceof TypeError) {
-          setError("Network error: Failed to fetch movies. Please check your connection.");
-        } else {
-          setError(error.message); // Custom errors
+          setMovies(data.Search);
+        } catch (error) {
+          // Check for network errors (TypeError)
+          if (error instanceof TypeError) {
+            setError("Network error: Failed to fetch movies. Please check your connection.");
+          } else {
+            setError(error.message); // Custom errors
+          }
+        } finally {
+          setIsLoading(false);
         }
-      } finally {
-        setIsLoading(false);
       }
-    }
-    fetchMovies();
-  }, []);
+
+      if (query.length < 3) {
+        setMovies([]);
+        setError("");
+        return;
+      }
+
+      fetchMovies();
+    },
+    [query]
+  );
 
   return (
     <>
       <NavBar>
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
       </NavBar>
 
@@ -128,9 +139,7 @@ function Logo() {
   );
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
-
+function Search({ query, setQuery }) {
   return (
     <input
       className="search"
