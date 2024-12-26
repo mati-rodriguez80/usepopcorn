@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 
 import StarRating from "./StarRating";
 
-const average = (arr) => arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
-
 const OMDB_API_KEY = "6fc5422e";
+
+const average = (arr) => arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
 export default function App() {
   const [movies, setMovies] = useState([]);
@@ -32,11 +32,16 @@ export default function App() {
 
   useEffect(
     function () {
+      // Like the fetch function below, the AbortController is a Browser API
+      const controller = new AbortController();
+
       async function fetchMovies() {
         try {
           setIsLoading(true);
           setError("");
-          const res = await fetch(`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${query}`);
+          const res = await fetch(`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${query}`, {
+            signal: controller.signal,
+          });
 
           // Handle non-successful HTTP response
           if (!res.ok) throw new Error("Something went wrong with fetching movies");
@@ -47,12 +52,16 @@ export default function App() {
           if (data.Response === "False") throw new Error(data.Error);
 
           setMovies(data.Search);
+          setError("");
         } catch (error) {
-          // Check for network errors (TypeError)
-          if (error instanceof TypeError) {
-            setError("Network error: Failed to fetch movies. Please check your connection.");
-          } else {
-            setError(error.message); // Custom errors
+          // First, we will ignore the AbortError thrown when the request is aborted
+          if (error.name !== "AbortError") {
+            // Check for network errors (TypeError)
+            if (error instanceof TypeError) {
+              setError("Network error: Failed to fetch movies. Please check your connection.");
+            } else {
+              setError(error.message); // Custom errors
+            }
           }
         } finally {
           setIsLoading(false);
@@ -66,6 +75,10 @@ export default function App() {
       }
 
       fetchMovies();
+
+      return function () {
+        controller.abort();
+      };
     },
     [query]
   );
@@ -234,6 +247,18 @@ function MovieDetail({ selectedMovieId, onCloseMovie, onAddWatchedMovie, watched
       getMovieDetails();
     },
     [selectedMovieId]
+  );
+
+  useEffect(
+    function () {
+      if (!title) return;
+      document.title = `Movie | ${title}`;
+
+      return function () {
+        document.title = "React App: usePopcorn";
+      };
+    },
+    [title]
   );
 
   function handleAddToList() {
