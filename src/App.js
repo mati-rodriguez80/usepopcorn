@@ -74,6 +74,7 @@ export default function App() {
         return;
       }
 
+      handleCloseMovie();
       fetchMovies();
 
       return function () {
@@ -259,6 +260,23 @@ function MovieDetail({ selectedMovieId, onCloseMovie, onAddWatchedMovie, watched
       };
     },
     [title]
+  );
+
+  useEffect(
+    function () {
+      function callback(e) {
+        if (e.code === "Escape") {
+          onCloseMovie();
+        }
+      }
+
+      document.addEventListener("keydown", callback);
+
+      return function () {
+        document.removeEventListener("keydown", callback);
+      };
+    },
+    [onCloseMovie]
   );
 
   function handleAddToList() {
