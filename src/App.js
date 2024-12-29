@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { useMovies } from "./useMovies";
 import StarRating from "./StarRating";
 
 const OMDB_API_KEY = "6fc5422e";
@@ -7,15 +8,14 @@ const OMDB_API_KEY = "6fc5422e";
 const average = (arr) => arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
 
 export default function App() {
-  const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState(function () {
     const watchedMoviesStored = JSON.parse(localStorage.getItem("watched"));
     return watchedMoviesStored;
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [selectedMovieId, setSelectedMovieId] = useState(null);
+
+  const { movies, isLoading, error } = useMovies(query);
 
   function handleSelectMovie(movieId) {
     setSelectedMovieId((currMovieId) => (movieId === currMovieId ? null : movieId));
@@ -32,60 +32,6 @@ export default function App() {
   function handleDeleteWatchedMovie(id) {
     setWatched((currWatched) => currWatched.filter((movie) => movie.imdbID !== id));
   }
-
-  useEffect(
-    function () {
-      // Like the fetch function below, the AbortController is a Browser API
-      const controller = new AbortController();
-
-      async function fetchMovies() {
-        try {
-          setIsLoading(true);
-          setError("");
-          const res = await fetch(`http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${query}`, {
-            signal: controller.signal,
-          });
-
-          // Handle non-successful HTTP response
-          if (!res.ok) throw new Error("Something went wrong with fetching movies");
-
-          const data = await res.json();
-
-          // Handle OMDB API errors (e.g., invalid query)
-          if (data.Response === "False") throw new Error(data.Error);
-
-          setMovies(data.Search);
-          setError("");
-        } catch (error) {
-          // First, we will ignore the AbortError thrown when the request is aborted
-          if (error.name !== "AbortError") {
-            // Check for network errors (TypeError)
-            if (error instanceof TypeError) {
-              setError("Network error: Failed to fetch movies. Please check your connection.");
-            } else {
-              setError(error.message); // Custom errors
-            }
-          }
-        } finally {
-          setIsLoading(false);
-        }
-      }
-
-      if (query.length < 3) {
-        setMovies([]);
-        setError("");
-        return;
-      }
-
-      handleCloseMovie();
-      fetchMovies();
-
-      return function () {
-        controller.abort();
-      };
-    },
-    [query]
-  );
 
   useEffect(
     function () {
