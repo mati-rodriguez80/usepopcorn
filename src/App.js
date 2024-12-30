@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useMovies } from "./useMovies";
 import { useLocalStorageState } from "./useLocalStorageState";
+import { useKey } from "./useKey";
 import StarRating from "./StarRating";
 
 const OMDB_API_KEY = "6fc5422e";
@@ -88,28 +89,13 @@ function Logo() {
 function Search({ query, setQuery }) {
   const inputEl = useRef(null);
 
-  useEffect(
-    function () {
-      function callback(e) {
-        // The activeElement is the element that is currently being focused
-        if (document.activeElement === inputEl.current) return;
+  useKey("Enter", function () {
+    // The activeElement is the element that is currently being focused
+    if (document.activeElement === inputEl.current) return;
 
-        if (e.code === "Enter") {
-          setQuery("");
-          inputEl.current.focus();
-        }
-      }
-
-      document.addEventListener("keydown", callback);
-
-      inputEl.current.focus();
-
-      return function () {
-        document.removeEventListener("keydown", callback);
-      };
-    },
-    [setQuery]
-  );
+    setQuery("");
+    inputEl.current.focus();
+  });
 
   return (
     <input
@@ -243,22 +229,7 @@ function MovieDetail({ selectedMovieId, onCloseMovie, onAddWatchedMovie, watched
     [title]
   );
 
-  useEffect(
-    function () {
-      function callback(e) {
-        if (e.code === "Escape") {
-          onCloseMovie();
-        }
-      }
-
-      document.addEventListener("keydown", callback);
-
-      return function () {
-        document.removeEventListener("keydown", callback);
-      };
-    },
-    [onCloseMovie]
-  );
+  useKey("Escape", onCloseMovie);
 
   function handleAddToList() {
     const newWatchedMovie = {
